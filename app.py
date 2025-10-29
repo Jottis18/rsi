@@ -1,7 +1,7 @@
 import pymysql
 import hashlib
-import time
 from os import getenv
+from datetime import datetime
 from waitress import serve
 from flask import Flask, request, render_template, render_template_string, session, redirect, url_for, jsonify
 from functools import wraps
@@ -82,13 +82,16 @@ def home():
         balance = cursor.fetchone()[0]
         session['balance'] = float(balance)
         
-        # Flag aparece se o saldo for >= 10000
-        flag = getenv("USER_FLAG") if float(balance) >= 10000 else None
+        # Verificar se pode acessar premium content (flag aparece aqui)
+        cursor.execute("SELECT COUNT(*) FROM orders WHERE username = %s AND item_id = (SELECT id FROM items WHERE name = 'Premium Access' LIMIT 1)", (username,))
+        has_premium = cursor.fetchone()[0] > 0
+        flag = getenv("USER_FLAG") if has_premium else None
         
         return render_template("home.html", 
                              username=username, 
                              balance=balance,
-                             flag=flag)
+                             flag=flag,
+                             has_premium=has_premium)
     except Exception as e:
         return render_template("error.html", error=str(e))
     finally:
@@ -200,6 +203,10 @@ def orders():
     conn = get_db_connection()
     try:
         cursor = conn.cursor()
+        cursor.execute("SELECT balance FROM users WHERE username = %s", (username,))
+        balance = float(cursor.fetchone()[0])
+        session['balance'] = balance
+        
         cursor.execute("""
             SELECT o.id, i.name, o.quantity, o.total_price, o.refunded, o.created_at
             FROM orders o
@@ -222,15 +229,59 @@ def orders():
         return render_template("orders.html",
                              username=username,
                              orders=orders_list,
-                             balance=session.get('balance', 0))
+                             balance=balance)
     except Exception as e:
         return render_template("error.html", error=str(e))
     finally:
         conn.close()
 
-@app.route("/refund", methods=["POST"])
+@app.route("/history", methods=["GET"])
 @login_required
-def refund():
+def history():
+    """Histórico de transações"""
+    username = session.get('username')
+    conn = get_db_connection()
+    try:
+        cursor = conn.cursor()
+        cursor.execute("SELECT balance FROM users WHERE username = %s", (username,))
+        balance = float(cursor.fetchone()[0])
+        
+        # Histórico completo (compras e cancelamentos)
+        cursor.execute("""
+            SELECT 'purchase' as type, o.created_at as date, i.name, o.total_price as amount
+            FROM orders o
+            JOIN items i ON o.item_id = i.id
+            WHERE o.username = %s
+            UNION ALL
+            SELECT 'refund' as type, o.created_at as date, i.name, o.total_price as amount
+            FROM orders o
+            JOIN items i ON o.item_id = i.id
+            WHERE o.username = %s AND o.refunded = 1
+            ORDER BY date DESC
+            LIMIT 50
+        """, (username, username))
+        
+        history_list = []
+        for row in cursor.fetchall():
+            history_list.append({
+                'type': row[0],
+                'date': row[1],
+                'item': row[2],
+                'amount': float(row[3])
+            })
+        
+        return render_template("history.html",
+                             username=username,
+                             history=history_list,
+                             balance=balance)
+    except Exception as e:
+        return render_template("error.html", error=str(e))
+    finally:
+        conn.close()
+
+@app.route("/order/cancel", methods=["POST"])
+@login_required
+def cancel_order():
     """
     VULNERÁVEL A RACE CONDITION!
     
@@ -357,10 +408,12 @@ def init_database():
             # Inserir itens
             cursor.execute("""
                 INSERT INTO items (name, price, description) VALUES
-                ('Premium Flag Access', 1000.00, 'Exclusive access to premium flags'),
-                ('Standard Item', 50.00, 'A standard item for testing'),
-                ('Basic Item', 25.00, 'A basic item'),
-                ('Expensive Item', 500.00, 'An expensive item for testing refunds')
+                ('Premium Access', 10000.00, 'Unlock exclusive premium features and content'),
+                ('Standard Item', 50.00, 'A standard item for your collection'),
+                ('Basic Item', 25.00, 'Essential basic item'),
+                ('Gaming Mouse', 75.00, 'High precision gaming mouse'),
+                ('Wireless Keyboard', 120.00, 'Ergonomic wireless keyboard'),
+                ('USB Cable', 15.00, 'High-speed USB-C cable')
             """)
         
         conn.commit()

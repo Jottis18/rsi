@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home - {{ username }}</title>
+    <title>Transaction History</title>
     <style>
         * {
             margin: 0;
@@ -14,7 +14,7 @@
         body {
             font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
+            min-height:radiovh;
             padding: 2rem;
         }
         
@@ -36,20 +36,16 @@
             border-bottom: 2px solid #eee;
         }
         
-        h1 {
-            color: #333;
-        }
-        
         .balance {
             font-size: 1.5rem;
             font-weight: bold;
             color: #667eea;
         }
         
-        nav {
+        .nav {
             display: flex;
             gap: 1rem;
-            margin-top: 1rem;
+            margin-bottom: 2rem;
         }
         
         .btn {
@@ -61,70 +57,78 @@
             display: inline-block;
         }
         
-        .btn:hover {
-            background: #5568d3;
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
         }
         
-        .btn-secondary {
-            background: #6c757d;
-        }
-        
-        .btn-secondary:hover {
-            background: #5a6268;
-        }
-        
-        .flag {
-            margin-top: 2rem;
+        th, td {
             padding: 1rem;
-            background: #d4edda;
-            border: 2px solid #28a745;
-            border-radius: 5px;
-            font-family: monospace;
-            font-size: 1.2rem;
-            text-align: center;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
         }
         
-        .info {
-            margin-top: 2rem;
-            padding: 1rem;
-            background: #fff3cd;
-            border-left: 4px solid #ffc107;
-            border-radius: 5px;
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+        
+        .type-purchase {
+            color: #28a745;
+            font-weight: bold;
+        }
+        
+        .type-refund {
+            color: #dc3545;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Welcome, {{ username }}!</h1>
+            <h1>📜 Transaction History</h1>
             <div class="balance">Balance: ${{ "%.2f"|format(balance) }}</div>
         </header>
         
-        <nav>
+        <div class="nav">
             <a href="/home" class="btn">Home</a>
             <a href="/shop" class="btn">Shop</a>
             <a href="/orders" class="btn">My Orders</a>
             <a href="/history" class="btn">History</a>
-            <a href="/logout" class="btn btn-secondary">Logout</a>
-        </nav>
-        
-        {% if has_premium %}
-        <div style="margin-top: 2rem; padding: 1rem; background: #d4edda; border-radius: 5px;">
-            <h2>🌟 Premium Access Active</h2>
-            <p>You have access to exclusive premium content!</p>
-        </div>
-        {% endif %}
-        
-        <div class="info">
-            <h2>📋 Challenge Description</h2>
-            <p>You are in a shopping application with a refund system. Your goal is to reach a balance of $10,000 or more to get the flag.</p>
-            <p><strong>Hint:</strong> Sometimes, timing is everything...</p>
+            <a href="/logout" class="btn" style="background: #6c757d;">Logout</a>
         </div>
         
-        {% if flag %}
-        <div class="flag">
-            🏴 FLAG: {{ flag }}
-        </div>
+        {% if history|length == 0 %}
+        <p>No transactions yet.</p>
+        {% else %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th>Date</th>
+                    <th>Item</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in history %}
+                <tr>
+                    <td>
+                        {% if item.type == 'purchase' %}
+                        <span class="type-purchase">Purchase</span>
+                        {% else %}
+                        <span class="type-refund">Refund</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ item.date }}</td>
+                    <td>{{ item.item }}</td>
+                    <td>${{ "%.2f"|format(item.amount) }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
         {% endif %}
     </div>
 </body>
