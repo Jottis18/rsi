@@ -24,7 +24,8 @@ COPY . /app
 RUN pip install --no-cache-dir \
     waitress flask pymysql cryptography
 
-EXPOSE $PORT
+EXPOSE 80
 
-CMD waitress-serve --host=0.0.0.0 --port=${PORT:-80} app:app
+# O comando será sobrescrito pelo railway.toml, mas deixamos um fallback
+CMD ["sh", "-c", "waitress-serve --host=0.0.0.0 --port=${PORT:-80} app:app"]
 
