@@ -1,0 +1,12 @@
+### Requisição de Refund para Burp Suite
+### Substitua o cookie de sessão pelo valor real após fazer login
+
+POST /refund HTTP/1.1
+Host: localhost:8080
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 13
+Cookie: session=SUBSTITUA_AQUI_SEU_SESSION_COOKIE
+Connection: close
+
+order_id=1
+

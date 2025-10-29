@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: mysql_db
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: testdb
+      MYSQL_USER: flaskuser
+      MYSQL_PASSWORD: flaskpass
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./data.sql:/docker-entrypoint-initdb.d/data.sql
+    networks:
+      - internal
+
+  flask_app:
+    build: .
+    container_name: flask_app
+    depends_on:
+      - mysql
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASSWORD: rootpassword
+      MYSQL_DATABASE: testdb
+    expose:
+      - "80"
+    ports:
+      - "8080:80"
+    networks:
+      - internal
+
+volumes:
+  mysql_data:
+    driver: local
+
+networks:
+  internal:
+

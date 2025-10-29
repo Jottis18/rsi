@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Orders</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #eee;
+        }
+        
+        .balance {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .nav {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            display: inline-block;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+        
+        .refund-btn {
+            padding: 0.5rem 1rem;
+            background: #ffc107;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .refund-btn:hover {
+            background: #e0a800;
+        }
+        
+        .refund-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .refunded {
+            color: #6c757d;
+            font-style: italic;
+        }
+    </style>
+    <script>
+        function requestRefund(orderId) {
+            const btn = event.target;
+            btn.disabled = true;
+            
+            const formData = new FormData();
+            formData.append('order_id', orderId);
+            
+            fetch('/refund', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message + '\nNew Balance: $' + data.new_balance.toFixed(2));
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                    btn.disabled = false;
+                }
+            })
+            .catch(error => {
+                alert('Error: ' + error);
+                btn.disabled = false;
+            });
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📦 My Orders</h1>
+            <div class="balance">Balance: ${{ "%.2f"|format(balance) }}</div>
+        </header>
+        
+        <div class="nav">
+            <a href="/home" class="btn">Home</a>
+            <a href="/shop" class="btn">Shop</a>
+            <a href="/orders" class="btn">My Orders</a>
+            <a href="/logout" class="btn" style="background: #6c757d;">Logout</a>
+        </div>
+        
+        {% if orders|length == 0 %}
+        <p>No orders yet. <a href="/shop">Go shopping!</a></p>
+        {% else %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Item</th>
+                    <th>Quantity</th>
+                    <th>Total Price</th>
+                    <th>Status</th>
+                    <th>Date</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.id }}</td>
+                    <td>{{ order.item_name }}</td>
+                    <td>{{ order.quantity }}</td>
+                    <td>${{ "%.2f"|format(order.total_price) }}</td>
+                    <td>
+                        {% if order.refunded %}
+                        <span class="refunded">Refunded</span>
+                        {% else %}
+                        Active
+                        {% endif %}
+                    </td>
+                    <td>{{ order.created_at }}</td>
+                    <td>
+                        {% if not order.refunded %}
+                        <button class="refund-btn" onclick="requestRefund({{ order.id }})">Refund</button>
+                        {% else %}
+                        <button class="refund-btn" disabled>Already Refunded</button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+</body>
+</html>
+
