@@ -24,7 +24,7 @@ COPY . /app
 RUN pip install --no-cache-dir \
     waitress flask pymysql cryptography
 
-EXPOSE 80
+EXPOSE $PORT
 
-CMD ["waitress-serve", "--host=0.0.0.0", "--port=80", "app:app"]
+CMD waitress-serve --host=0.0.0.0 --port=${PORT:-80} app:app
 
