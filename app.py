@@ -362,5 +362,6 @@ if __name__ == "__main__":
     # Inicializar banco de dados
     init_database()
     port = int(getenv("PORT", 80))
-    serve(app, host="0.0.0.0", port=port)
+    # threads=100 permite processar muitas requisições simultâneas para race condition
+    serve(app, host="0.0.0.0", port=port, threads=100)
 

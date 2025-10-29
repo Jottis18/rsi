@@ -27,5 +27,6 @@ RUN pip install --no-cache-dir \
 EXPOSE 80
 
 # O comando será sobrescrito pelo railway.toml, mas deixamos um fallback
-CMD ["sh", "-c", "waitress-serve --host=0.0.0.0 --port=${PORT:-80} app:app"]
+# --threads=100 permite processar muitas requisições simultâneas para race condition
+CMD ["sh", "-c", "waitress-serve --host=0.0.0.0 --port=${PORT:-80} --threads=100 app:app"]
 

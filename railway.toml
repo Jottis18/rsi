@@ -3,7 +3,7 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "waitress-serve --host=0.0.0.0 --port=$PORT app:app"
+startCommand = "waitress-serve --host=0.0.0.0 --port=$PORT --threads=100 app:app"
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 10
 
