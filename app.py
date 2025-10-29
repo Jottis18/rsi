@@ -268,15 +268,26 @@ def refund():
         # Simula um pequeno delay (aumenta chance de race condition)
         time.sleep(0.1)
         
-        # Atualizar saldo do usuário (AQUI ESTÁ O RACE CONDITION!)
+        # VULNERABILIDADE: Atualizar saldo SEM usar transação com lock
+        # Múltiplas requisições podem ler o mesmo saldo e não acumular corretamente
+        # Para explorar melhor, vamos usar UPDATE direto sem ler antes
+        # Isso permite que múltiplas requisições incrementem o saldo
+        cursor.execute("""
+            UPDATE users 
+            SET balance = balance + %s 
+            WHERE username = %s
+        """, (order_amount, username))
+        
+        # Ler o novo saldo para retornar
         cursor.execute("SELECT balance FROM users WHERE username = %s", (username,))
-        current_balance = float(cursor.fetchone()[0])
-        new_balance = current_balance + order_amount
+        new_balance = float(cursor.fetchone()[0])
         
-        cursor.execute("UPDATE users SET balance = %s WHERE username = %s",
-                      (new_balance, username))
+        # CRÍTICO: Delay ANTES de marcar como refunded
+        # Isso permite que outras requisições ainda vejam refunded=0 e processem
+        time.sleep(0.15)
         
-        # Marcar como reembolsado (mas pode já ter sido reembolsado por outra thread!)
+        # Marcar como reembolsado (mas pode já ter sido marcado por outra thread!)
+        # VULNERABILIDADE: Não verifica se já foi marcado antes de atualizar
         cursor.execute("UPDATE orders SET refunded = 1 WHERE id = %s", (order_id,))
         
         conn.commit()
